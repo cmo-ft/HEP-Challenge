@@ -37,35 +37,35 @@ class StatisticalAnalysis:
                 # "range": np.linspace(0.9, 1.1, 15),
                 "range": np.linspace(0.9, 1.1, 7),
                 "mean": 1.0,
-                "std": 0.03,
+                "std": 0.01,
             },
             "bkg_scale": {
                 "range": np.linspace(0.99, 1.01, 15),
                 "mean": 1.0,
-                "std": 0.003,
+                "std": 0.001,
             },
             "jes": {
                 # TODO: refine the range
                 # "range": np.linspace(0.9, 1.1, 15),
                 "range": np.linspace(0.9, 1.1, 3),
                 "mean": 1.0,
-                "std": 0.03,
+                "std": 0.01,
             },
             "soft_met": {
                 "range": np.linspace(0.0, 5.0, 15),
                 "mean": 0.0,
                 # TODO: soft_met should be positive
-                "std": 3.0,
+                "std": 1.0,
             },
             "ttbar_scale": {
                 "range": np.linspace(0.8, 1.2, 15),
                 "mean": 1.0,
-                "std": 0.06,
+                "std": 0.02,
             },
             "diboson_scale": {
                 "range": np.linspace(0.0, 2.0, 15),
                 "mean": 1.0,
-                "std": 0.75,
+                "std": 0.25,
             },
         }
 
@@ -154,8 +154,6 @@ class StatisticalAnalysis:
             return yields
 
         def NLL(mu, tes, bkg_scale, jes, soft_met, ttbar_scale, diboson_scale, overall_norm_factor):
-            w = 1
-
             obs_hist = np.zeros(self.bins)
             for i in range(self.bins):
                 obs_hist[i] = data_templates[i](tes, jes)
@@ -188,7 +186,7 @@ class StatisticalAnalysis:
 
             # print(f"mu: {mu}, tes: {tes}, bkg_scale: {bkg_scale}, jes: {jes}, soft_met: {soft_met}, ttbar_scale: {ttbar_scale}, diboson_scale: {diboson_scale}, NLL: {nll_data.sum()}, NLL_Gaus {nll_gauss}")
 
-            return (nll_poisson + w * nll_gauss).sum()
+            return (nll_poisson.sum() + nll_gauss)
 
         result = Minuit(NLL,
                         mu=1.0,
@@ -502,16 +500,27 @@ class StatisticalAnalysis:
         ax1.set_title('Stacked Histogram: Signal and Background Fits with Observed Data')
         ax1.legend()
 
-        # Subplot: distribution of (N_obs - background_fit) and signal_fit
-        diff = N_obs - background_fit
-        ax2.errorbar(bin_centers, diff, yerr=np.sqrt(np.abs(diff)), fmt='o', color='k', label='N_obs - Background')
-
-        # ax2.bar(bin_centers, diff, width=bin_widths, color='purple', align='center', label='N_obs - Background')
-        ax2.bar(bin_centers, signal_fit, width=bin_widths, color='g', align='center', alpha=0.5, label='Signal')
-
+        # Ratio plot: N_obs / (background_fit + signal_fit)
+        expected = background_fit + signal_fit
+        ratio = N_obs / (background_fit + 1e-8)
+        rel_error = (1 / (N_obs + 1e-8) + 1 / (background_fit + 1e-8))**0.5
+        error = np.sqrt(rel_error) * ratio
+        ax2.errorbar(bin_centers, ratio, yerr=error, fmt='o', color='k', label='N_obs / Background')
+        ax2.axhline(1, color='r', linestyle='--', label='Expected Ratio = 1')
         ax2.set_xlabel('Score')
-        ax2.set_ylabel('Counts')
+        ax2.set_ylabel('Ratio')
         ax2.legend()
+
+        # # Subplot: distribution of (N_obs - background_fit) and signal_fit
+        # diff = N_obs - background_fit
+        # ax2.errorbar(bin_centers, diff, yerr=np.sqrt(np.abs(diff)), fmt='o', color='k', label='N_obs - Background')
+
+        # # ax2.bar(bin_centers, diff, width=bin_widths, color='purple', align='center', label='N_obs - Background')
+        # ax2.bar(bin_centers, signal_fit, width=bin_widths, color='g', align='center', alpha=0.5, label='Signal')
+
+        # ax2.set_xlabel('Score')
+        # ax2.set_ylabel('Counts')
+        # ax2.legend()
 
 
         plt.tight_layout()
