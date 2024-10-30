@@ -510,6 +510,7 @@ class StatisticalAnalysis:
         ax2.axhline(1, color='r', linestyle='--', label='Expected Ratio = 1')
         ax2.set_xlabel('Score')
         ax2.set_ylabel('Ratio')
+        ax2.set_ylim(0.9, 1.1)
         ax2.legend()
 
         # # Subplot: distribution of (N_obs - background_fit) and signal_fit
