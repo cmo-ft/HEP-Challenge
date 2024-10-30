@@ -58,7 +58,7 @@ class Model:
         print("Model is ", self.name)
 
         self.stat_analysis = StatisticalAnalysis(
-            self.model, bins=20, systematics=self.systematics
+            self.model, bins=100, systematics=self.systematics
         )
 
         saved_info_file_dir = current_file + "/saved_info_" + self.name
@@ -205,10 +205,11 @@ class Model:
             3. Decorelate the data with soft_met syst
             4. Repeat the above steps to augment the data
             """
-            training_set_aug = self.syst_augment_data_set(training_set, factor=4)
-            valid_set_aug = self.syst_augment_data_set(valid_set, factor=4)
-            # training_set_aug = self.syst_augment_data_set(training_set, factor=1, nosyst=True)
-            # valid_set_aug = self.syst_augment_data_set(valid_set, factor=1, nosyst=True)
+            # training_set_aug = self.syst_augment_data_set(training_set, factor=4)
+            # valid_set_aug = self.syst_augment_data_set(valid_set, factor=4)
+            # since TES and JES have no effect, and soft_met is not considered for now, we only use nominal
+            training_set_aug = self.syst_augment_data_set(training_set, factor=1, nominal_only=True)
+            valid_set_aug = self.syst_augment_data_set(valid_set, factor=1, nominal_only=True)
 
             print_set_info("Training", training_set_aug)
             print_set_info("Validation", valid_set_aug)

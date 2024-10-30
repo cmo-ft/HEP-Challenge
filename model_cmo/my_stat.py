@@ -20,6 +20,7 @@ class StatisticalAnalysis:
         self.model = model
         self.bins = bins
         self.bin_edges = np.linspace(0, 1, bins + 1)
+        self.bin_edges = np.linspace(0.7, 1, bins + 1)
         self.syst_settings = {
             'tes': 1.0,
             'bkg_scale': 1.0,
@@ -141,7 +142,11 @@ class StatisticalAnalysis:
 
 
     def compute_mu(self, observed_data, weight_data):
-        data_templates = self.build_data_templates(observed_data, weight_data)
+        # TODO: statistic test. Fix this
+        data_nominal = reverse_parameterize_systs(observed_data.copy())
+        data_score = self.model.predict(data_nominal)
+        obs_hist, bins = np.histogram(data_score, bins=self.bin_edges, density=False, weights=weight_data)
+        # data_templates = self.build_data_templates(observed_data, weight_data)
 
         def get_yields(template, alpha):
             yields = self.rebin_hist(template['nominal'], self.template_bin_edges, self.bin_edges)
@@ -155,9 +160,10 @@ class StatisticalAnalysis:
             return yields
 
         def NLL(mu, tes, bkg_scale, jes, soft_met, ttbar_scale, diboson_scale, overall_norm_factor):
-            obs_hist = np.zeros(self.bins)
-            for i in range(self.bins):
-                obs_hist[i] = data_templates[i](tes, jes)
+            # TODO: statistic test. Fix this
+            # obs_hist = np.zeros(self.bins)
+            # for i in range(self.bins):
+            #     obs_hist[i] = data_templates[i](tes, jes)
 
             alpha = {
                 'tes': tes,
@@ -206,7 +212,7 @@ class StatisticalAnalysis:
         result.limits['mu'] = (0, 10)
 
         # TODO: remove the fixed parameters
-        for p in ['jes', 'soft_met', 'ttbar_scale', 'diboson_scale', 'bkg_scale']:
+        for p in ['jes', 'soft_met', 'ttbar_scale', 'diboson_scale', 'bkg_scale', 'tes']:
             result.fixed[p] = True
 
         result.errordef = Minuit.LIKELIHOOD
@@ -226,9 +232,10 @@ class StatisticalAnalysis:
 
         # plot the fit
         alpha_test = {syst: result.values[syst] for syst in self.syst_settings.keys()}
-        obs_hist = np.zeros(self.bins)
-        for i in range(self.bins):
-            obs_hist[i] = data_templates[i](alpha_test['tes'], alpha_test['jes'])
+        # TODO: statistic test. Fix this
+        # obs_hist = np.zeros(self.bins)
+        # for i in range(self.bins):
+        #     obs_hist[i] = data_templates[i](alpha_test['tes'], alpha_test['jes'])
         sig_yields = get_yields(self.template_sig, alpha_test)
         bkg_scale, ttbar_scale, diboson_scale = result.values['bkg_scale'], result.values['ttbar_scale'], result.values['diboson_scale']
         bkg_yields = bkg_scale * ttbar_scale * get_yields(self.template_ttbar, alpha_test) + \

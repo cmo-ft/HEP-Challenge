@@ -65,7 +65,7 @@ def reverse_parameterize_systs(
     """
     Manage data set that has systematics applied.
     1. Reverse the TES and JES systematics
-    2. Parametrize data with soft_met syst
+    2. Parametrize data with soft_met syst # currently not used
 
     Args:
         * data (pd.DataFrame): A dictionary containing the data.
@@ -79,6 +79,6 @@ def reverse_parameterize_systs(
     data_reversed = reverse_p4(data_new.copy(), tes, jes, soft_met)
     data_reversed_with_der = DER_data(data_reversed.copy())
 
-    # parametrize data with soft_met syst
-    data_reversed_with_der['soft_met'] = soft_met
+    # # parametrize data with soft_met syst
+    # data_reversed_with_der['soft_met'] = soft_met
     return data_reversed_with_der
