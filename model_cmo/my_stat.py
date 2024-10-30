@@ -505,7 +505,7 @@ class StatisticalAnalysis:
         expected = background_fit + signal_fit
         ratio = N_obs / (expected + 1e-8)
         rel_error = (1 / (N_obs + 1e-8) + 1 / (expected + 1e-8))**0.5
-        error = np.sqrt(rel_error) * ratio
+        error = (rel_error) * ratio
         ax2.errorbar(bin_centers, ratio, yerr=error, fmt='o', color='k', label='N_obs / expected')
         ax2.axhline(1, color='r', linestyle='--', label='Expected Ratio = 1')
         ax2.set_xlabel('Score')
