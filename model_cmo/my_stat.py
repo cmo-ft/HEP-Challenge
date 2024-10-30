@@ -108,11 +108,12 @@ class StatisticalAnalysis:
     def build_data_templates(self, data, weights=None):
         # build data template for each score bin. The template is the sow as a function of tes and jes
 
-        histograms = np.zeros((self.bins, len(self.alpha_ranges['tes']['range']), len(self.alpha_ranges['jes']['range'])))
+        tes_range, jes_range = self.alpha_ranges['tes']['range'], self.alpha_ranges['jes']['range']
+        histograms = np.zeros((self.bins, len(tes_range), len(jes_range)))
 
         template_x, template_y = [], []
-        for i_tes, tes in enumerate(self.alpha_ranges['tes']['range']):
-            for i_jes, jes in enumerate(self.alpha_ranges['jes']['range']):
+        for i_tes, tes in enumerate(tes_range):
+            for i_jes, jes in enumerate(jes_range):
                 data_reversed = reverse_parameterize_systs(data.copy(), tes, jes)
                 score = self.model.predict(data_reversed)
                 hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights)
@@ -502,10 +503,10 @@ class StatisticalAnalysis:
 
         # Ratio plot: N_obs / (background_fit + signal_fit)
         expected = background_fit + signal_fit
-        ratio = N_obs / (background_fit + 1e-8)
-        rel_error = (1 / (N_obs + 1e-8) + 1 / (background_fit + 1e-8))**0.5
+        ratio = N_obs / (expected + 1e-8)
+        rel_error = (1 / (N_obs + 1e-8) + 1 / (expected + 1e-8))**0.5
         error = np.sqrt(rel_error) * ratio
-        ax2.errorbar(bin_centers, ratio, yerr=error, fmt='o', color='k', label='N_obs / Background')
+        ax2.errorbar(bin_centers, ratio, yerr=error, fmt='o', color='k', label='N_obs / expected')
         ax2.axhline(1, color='r', linestyle='--', label='Expected Ratio = 1')
         ax2.set_xlabel('Score')
         ax2.set_ylabel('Ratio')
