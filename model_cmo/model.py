@@ -57,6 +57,9 @@ class Model:
 
         print("Model is ", self.name)
 
+        # self.stat_analysis = StatisticalAnalysis(
+        #     self.model, bins=100, systematics=self.systematics
+        # )
         self.stat_analysis = StatisticalAnalysis(
             self.model, bins=100, systematics=self.systematics
         )

@@ -19,8 +19,8 @@ class StatisticalAnalysis:
     def __init__(self, model, bins=10, systematics=None):
         self.model = model
         self.bins = bins
-        self.bin_edges = np.linspace(0, 1, bins + 1)
-        self.bin_edges = np.linspace(0.7, 1, bins + 1)
+        # self.bin_edges = np.linspace(0, 1, bins + 1)
+        self.bin_edges = np.linspace(0.8, 1, bins + 1)
         self.syst_settings = {
             'tes': 1.0,
             'bkg_scale': 1.0,
@@ -72,7 +72,7 @@ class StatisticalAnalysis:
 
         self.run_syst = None
 
-        self.template_bin = 1000
+        self.template_bin = 5000
         self.template_bin_edges = np.linspace(0, 1, self.template_bin + 1)
         self.template_sig = {
             'nominal': None,
@@ -145,6 +145,10 @@ class StatisticalAnalysis:
         # TODO: statistic test. Fix this
         data_nominal = reverse_parameterize_systs(observed_data.copy())
         data_score = self.model.predict(data_nominal)
+        obs_count = (data_score > 0.8).sum()
+        self.bins = np.sqrt(obs_count).astype(int)
+        print(f"Number of bins: {self.bins}")
+        self.bin_edges = np.linspace(0.8, 1, self.bins + 1)
         obs_hist, bins = np.histogram(data_score, bins=self.bin_edges, density=False, weights=weight_data)
         # data_templates = self.build_data_templates(observed_data, weight_data)
 
@@ -159,7 +163,9 @@ class StatisticalAnalysis:
 
             return yields
 
-        def NLL(mu, tes, bkg_scale, jes, soft_met, ttbar_scale, diboson_scale, overall_norm_factor):
+        # overall_norm_factor = (weight_data.sum()) / (self.template_sig['nominal'].sum() + self.template_ttbar['nominal'].sum() + self.template_diboson['nominal'].sum() + self.template_other_bkg['nominal'].sum())
+        overall_norm_factor = 1. # TODO: remove this
+        def NLL(mu, tes, bkg_scale, jes, soft_met, ttbar_scale, diboson_scale):
             # TODO: statistic test. Fix this
             # obs_hist = np.zeros(self.bins)
             # for i in range(self.bins):
@@ -203,7 +209,7 @@ class StatisticalAnalysis:
                         soft_met=0.0,
                         ttbar_scale=1.0,
                         diboson_scale=1.0,
-                        overall_norm_factor=1.0,
+                        # overall_norm_factor=1.0,
                         )
 
         for key, value in self.alpha_ranges.items():
@@ -212,7 +218,14 @@ class StatisticalAnalysis:
         result.limits['mu'] = (0, 10)
 
         # TODO: remove the fixed parameters
-        for p in ['jes', 'soft_met', 'ttbar_scale', 'diboson_scale', 'bkg_scale', 'tes']:
+        for p in [
+            'jes', 
+            # 'soft_met', 
+            # 'ttbar_scale', 
+            # 'diboson_scale', 
+            # 'bkg_scale', 
+            'tes'
+            ]:
             result.fixed[p] = True
 
         result.errordef = Minuit.LIKELIHOOD
@@ -241,10 +254,11 @@ class StatisticalAnalysis:
         bkg_yields = bkg_scale * ttbar_scale * get_yields(self.template_ttbar, alpha_test) + \
                     bkg_scale * diboson_scale * get_yields(self.template_diboson, alpha_test) + \
                     bkg_scale * get_yields(self.template_other_bkg, alpha_test)
+        # overall_norm_factor = result.values['overall_norm_factor']
         self.plot_stacked_histogram(
             self.bin_edges,
-            sig_yields * result.values['overall_norm_factor'],
-            bkg_yields * result.values['overall_norm_factor'],
+            sig_yields * overall_norm_factor,
+            bkg_yields * overall_norm_factor,
             mu=mu_hat,
             N_obs=obs_hist,
             save_name=f"plots-mystat/fit.png"
@@ -307,10 +321,10 @@ class StatisticalAnalysis:
         os.makedirs('plots-mystat/systematics', exist_ok=True)
 
         # TODO: In principle, only soft_met need to be considered in the template
-        # for syst in ['soft_met']:
+        for syst in ['soft_met']:
         # for syst in self.alpha_ranges.keys():
         # for syst in ['tes', 'jes', 'soft_met']: # scale factors will be considered in the fit
-        for syst in self.template_sig.keys():
+        # for syst in self.template_sig.keys():
             if syst == 'nominal': continue
             self.template_sig[syst]['up'], self.template_ttbar[syst]['up'], self.template_diboson[syst]['up'], self.template_other_bkg[syst]['up'] = get_distribution(
                 syst, self.alpha_ranges[syst]['mean'] + self.alpha_ranges[syst]['std']
