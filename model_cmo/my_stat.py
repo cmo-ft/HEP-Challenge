@@ -36,7 +36,7 @@ class StatisticalAnalysis:
             "tes": {
                 # TODO: refine the range
                 # "range": np.linspace(0.9, 1.1, 15),
-                "range": np.linspace(0.9, 1.1, 7),
+                "range": np.linspace(0.9, 1.1, 5),
                 "mean": 1.0,
                 "std": 0.01,
             },
@@ -48,7 +48,7 @@ class StatisticalAnalysis:
             "jes": {
                 # TODO: refine the range
                 # "range": np.linspace(0.9, 1.1, 15),
-                "range": np.linspace(0.9, 1.1, 10),
+                "range": np.linspace(0.9, 1.1, 5),
                 "mean": 1.0,
                 "std": 0.01,
             },
@@ -72,7 +72,7 @@ class StatisticalAnalysis:
 
         self.run_syst = None
 
-        self.template_bin = 5000
+        self.template_bin = 1000
         self.template_bin_edges = np.linspace(0, 1, self.template_bin + 1)
         self.template_sig = {
             'nominal': None,
@@ -141,6 +141,41 @@ class StatisticalAnalysis:
         return templates
 
 
+    def build_data_double1d_templates(self, data, weights=None):
+        # build data template for each score bin. The template is the sow as a function of tes and jes
+        tes_range = np.linspace(self.alpha_ranges['tes']['range'][0], self.alpha_ranges['tes']['range'][-1], 11)
+        histograms_tes = np.zeros((self.bins, len(tes_range)))
+        for i_tes, tes in enumerate(tes_range):
+            data_reversed = reverse_parameterize_systs(data.copy(), tes=tes)
+            score = self.model.predict(data_reversed)
+            hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights)
+            histograms_tes[:, i_tes] = hist
+        
+        jes_range = np.linspace(self.alpha_ranges['jes']['range'][0], self.alpha_ranges['jes']['range'][-1], 11)
+        histograms_jes = np.zeros((self.bins, len(jes_range)))
+        for i_jes, jes in enumerate(jes_range):
+            data_reversed = reverse_parameterize_systs(data.copy(), jes=jes)
+            score = self.model.predict(data_reversed)
+            hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights)
+            histograms_jes[:, i_jes] = hist
+        
+        # build the template for each score bin
+        templates = [None for _ in range(self.bins)]
+
+        def build_template(hist_vs_tesid):
+            coef_tes = np.polyfit(tes_range, hist_vs_tesid, 5)
+            coef_jes = np.polyfit(jes_range, hist_vs_tesid, 5)
+            nominal_value = np.polyval(coef_tes, 1)
+            def template(tes, jes):
+                return np.polyval(coef_tes, tes) + np.polyval(coef_jes, jes) - nominal_value
+            return template
+        
+        for i in range(self.bins):
+            templates[i] = build_template(histograms_tes[i])
+
+        return templates
+
+
     def build_data_tes_templates(self, data, weights=None):
         # build data template for each score bin. The template is the sow as a function of tes and jes
 
@@ -171,17 +206,20 @@ class StatisticalAnalysis:
 
 
     def compute_mu(self, observed_data, weight_data):
-        data_nominal = reverse_parameterize_systs(observed_data.copy())
-        data_score = self.model.predict(data_nominal)
-        obs_count = (data_score > 0.8).sum()
-        self.bins = np.sqrt(obs_count).astype(int)
+        # data_nominal = reverse_parameterize_systs(observed_data.copy())
+        # data_score = self.model.predict(data_nominal)
+        # obs_count = (data_score > 0.8).sum()
+        # self.bins = np.sqrt(obs_count).astype(int)
+        self.bins = 201 
+        # self.bins = 20
+        self.bin_edges = np.linspace(0.8, 1, self.bins + 1) # or np.linspace(0.801, 1, 101)
         print(f"Number of bins: {self.bins}")
-        self.bin_edges = np.linspace(0.8, 1, self.bins + 1)
 
         # TODO: statistic test. Fix this
         # obs_hist, bins = np.histogram(data_score, bins=self.bin_edges, density=False, weights=weight_data)
-        # data_templates = self.build_data_templates(observed_data, weight_data)
-        data_templates = self.build_data_tes_templates(observed_data, weight_data)
+        data_templates = self.build_data_templates(observed_data, weight_data)
+        # data_templates = self.build_data_tes_templates(observed_data, weight_data)
+        # data_templates = self.build_data_double1d_templates(observed_data, weight_data)
 
         def get_yields(template, alpha):
             yields = self.rebin_hist(template['nominal'], self.template_bin_edges, self.bin_edges)
@@ -250,8 +288,8 @@ class StatisticalAnalysis:
 
         # TODO: remove the fixed parameters
         for p in [
-            'jes', 
-            'soft_met', 
+            # 'jes', 
+            # 'soft_met', 
             # 'ttbar_scale', 
             # 'diboson_scale', 
             # 'bkg_scale', 
