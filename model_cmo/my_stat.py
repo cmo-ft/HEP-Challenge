@@ -220,7 +220,7 @@ class StatisticalAnalysis:
         if not result.fmin.is_valid:
             print("Warning: migrad did not converge. Hessian errors might be unreliable.")
 
-        error_bar_scale = 2.5
+        error_bar_scale = 1
         mu_hat = result.values['mu']
         delta_mu_hat = result.errors['mu'] * error_bar_scale
         mu_p16 = mu_hat - delta_mu_hat
