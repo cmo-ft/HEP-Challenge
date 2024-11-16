@@ -49,6 +49,7 @@ class Model:
 
         from boosted_decision_tree import BoostedDecisionTree
         self.name = "model_systematic_aware_XGB"
+        print(f"Model in 3x3 mode - improved")
         self.model = BoostedDecisionTree()
         module_file = current_file + f"/{self.name}.json"
         if os.path.exists(module_file):
@@ -266,6 +267,8 @@ class Model:
                     dataset,
                     plot_name,
                 )
+        
+        print("fit finished")
         
 
     def predict(self, test_set):

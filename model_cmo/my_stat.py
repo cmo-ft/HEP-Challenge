@@ -36,7 +36,11 @@ class StatisticalAnalysis:
             "tes": {
                 # TODO: refine the range
                 # "range": np.linspace(0.9, 1.1, 15),
-                "range": np.linspace(0.9, 1.1, 5),
+<<<<<<< HEAD
+                "range": np.linspace(0.9, 1.1, 3),
+=======
+                "range": np.linspace(0.9, 1.1, 7),
+>>>>>>> parent of 9cd1d09... first submission
                 "mean": 1.0,
                 "std": 0.01,
             },
@@ -48,7 +52,11 @@ class StatisticalAnalysis:
             "jes": {
                 # TODO: refine the range
                 # "range": np.linspace(0.9, 1.1, 15),
-                "range": np.linspace(0.9, 1.1, 5),
+<<<<<<< HEAD
+                "range": np.linspace(0.9, 1.1, 3),
+=======
+                "range": np.linspace(0.9, 1.1, 10),
+>>>>>>> parent of 9cd1d09... first submission
                 "mean": 1.0,
                 "std": 0.01,
             },
@@ -72,7 +80,7 @@ class StatisticalAnalysis:
 
         self.run_syst = None
 
-        self.template_bin = 1000
+        self.template_bin = 5000
         self.template_bin_edges = np.linspace(0, 1, self.template_bin + 1)
         self.template_sig = {
             'nominal': None,
@@ -109,15 +117,26 @@ class StatisticalAnalysis:
     def build_data_templates(self, data, weights=None):
         # build data template for each score bin. The template is the sow as a function of tes and jes
 
+        # only consider nominal score> self.bin_edges[0]*0.6
+        data_nominal = reverse_parameterize_systs(data)
+        score_nominal = self.model.predict(data_nominal)
+
+        mask = score_nominal > self.bin_edges[0]*0.6
+        data_slimed = data[mask].copy()
+        weights_slimed = weights[mask].copy() if weights is not None else None
+
         tes_range, jes_range = self.alpha_ranges['tes']['range'], self.alpha_ranges['jes']['range']
         histograms = np.zeros((self.bins, len(tes_range), len(jes_range)))
 
         template_x, template_y = [], []
         for i_tes, tes in enumerate(tes_range):
             for i_jes, jes in enumerate(jes_range):
-                data_reversed = reverse_parameterize_systs(data.copy(), tes, jes)
-                score = self.model.predict(data_reversed)
-                hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights)
+                if tes == 1.0 and jes == 1.0:
+                    hist = np.histogram(score_nominal, bins=self.bin_edges, density=False, weights=weights)[0]
+                else:
+                    data_reversed = reverse_parameterize_systs(data_slimed.copy(), tes, jes)
+                    score = self.model.predict(data_reversed)
+                    hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights_slimed)
                 histograms[:, i_tes, i_jes] = hist
                 template_x.append(tes)
                 template_y.append(jes)
@@ -125,11 +144,6 @@ class StatisticalAnalysis:
         # build the template for each score bin
         templates = [None for _ in range(self.bins)]
 
-        # def build_template(hist_vs_tesid_jesid):
-        #     x = self.alpha_ranges['tes']['range']
-        #     y = self.alpha_ranges['jes']['range']
-        #     template = interp2d(x, y, hist_vs_tesid_jesid, kind='linear')
-        #     return template
         def build_template(hist_vs_tesid_jesid):
             def template(tes, jes):
                 return griddata((template_x, template_y), hist_vs_tesid_jesid.flatten(), (tes, jes), method='linear')
@@ -141,41 +155,16 @@ class StatisticalAnalysis:
         return templates
 
 
-    def build_data_double1d_templates(self, data, weights=None):
-        # build data template for each score bin. The template is the sow as a function of tes and jes
-        tes_range = np.linspace(self.alpha_ranges['tes']['range'][0], self.alpha_ranges['tes']['range'][-1], 11)
-        histograms_tes = np.zeros((self.bins, len(tes_range)))
-        for i_tes, tes in enumerate(tes_range):
-            data_reversed = reverse_parameterize_systs(data.copy(), tes=tes)
-            score = self.model.predict(data_reversed)
-            hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights)
-            histograms_tes[:, i_tes] = hist
-        
-        jes_range = np.linspace(self.alpha_ranges['jes']['range'][0], self.alpha_ranges['jes']['range'][-1], 11)
-        histograms_jes = np.zeros((self.bins, len(jes_range)))
-        for i_jes, jes in enumerate(jes_range):
-            data_reversed = reverse_parameterize_systs(data.copy(), jes=jes)
-            score = self.model.predict(data_reversed)
-            hist, bins = np.histogram(score, bins=self.bin_edges, density=False, weights=weights)
-            histograms_jes[:, i_jes] = hist
-        
-        # build the template for each score bin
-        templates = [None for _ in range(self.bins)]
+<<<<<<< HEAD
+    def compute_mu(self, observed_data, weight_data):
+        self.bins = 101
+        # self.bins = 20
+        self.bin_edges = np.linspace(0.8, 1, self.bins + 1) # or np.linspace(0.801, 1, 101)
+        print(f"Number of bins: {self.bins}", flush=True)
 
-        def build_template(hist_vs_tesid):
-            coef_tes = np.polyfit(tes_range, hist_vs_tesid, 5)
-            coef_jes = np.polyfit(jes_range, hist_vs_tesid, 5)
-            nominal_value = np.polyval(coef_tes, 1)
-            def template(tes, jes):
-                return np.polyval(coef_tes, tes) + np.polyval(coef_jes, jes) - nominal_value
-            return template
-        
-        for i in range(self.bins):
-            templates[i] = build_template(histograms_tes[i])
-
-        return templates
-
-
+        # TODO: statistic test. Fix this
+        data_templates = self.build_data_templates(observed_data, weight_data)
+=======
     def build_data_tes_templates(self, data, weights=None):
         # build data template for each score bin. The template is the sow as a function of tes and jes
 
@@ -206,20 +195,18 @@ class StatisticalAnalysis:
 
 
     def compute_mu(self, observed_data, weight_data):
-        # data_nominal = reverse_parameterize_systs(observed_data.copy())
-        # data_score = self.model.predict(data_nominal)
-        # obs_count = (data_score > 0.8).sum()
-        # self.bins = np.sqrt(obs_count).astype(int)
-        self.bins = 201 
-        # self.bins = 20
-        self.bin_edges = np.linspace(0.8, 1, self.bins + 1) # or np.linspace(0.801, 1, 101)
+        data_nominal = reverse_parameterize_systs(observed_data.copy())
+        data_score = self.model.predict(data_nominal)
+        obs_count = (data_score > 0.8).sum()
+        self.bins = np.sqrt(obs_count).astype(int)
         print(f"Number of bins: {self.bins}")
+        self.bin_edges = np.linspace(0.8, 1, self.bins + 1)
 
         # TODO: statistic test. Fix this
         # obs_hist, bins = np.histogram(data_score, bins=self.bin_edges, density=False, weights=weight_data)
-        data_templates = self.build_data_templates(observed_data, weight_data)
-        # data_templates = self.build_data_tes_templates(observed_data, weight_data)
-        # data_templates = self.build_data_double1d_templates(observed_data, weight_data)
+        # data_templates = self.build_data_templates(observed_data, weight_data)
+        data_templates = self.build_data_tes_templates(observed_data, weight_data)
+>>>>>>> parent of 9cd1d09... first submission
 
         def get_yields(template, alpha):
             yields = self.rebin_hist(template['nominal'], self.template_bin_edges, self.bin_edges)
@@ -232,7 +219,6 @@ class StatisticalAnalysis:
 
             return yields
 
-        # overall_norm_factor = (weight_data.sum()) / (self.template_sig['nominal'].sum() + self.template_ttbar['nominal'].sum() + self.template_diboson['nominal'].sum() + self.template_other_bkg['nominal'].sum())
         overall_norm_factor = 1. # TODO: remove this
         def NLL(mu, tes, bkg_scale, jes, soft_met, ttbar_scale, diboson_scale):
             # TODO: statistic test. Fix this
@@ -259,14 +245,9 @@ class StatisticalAnalysis:
             exp_hist = np.clip(exp_hist, epsilon, None)
 
             nll_poisson = exp_hist - obs_hist * np.log(exp_hist) + scipy.special.gammaln(obs_hist + 1)
-            # nll_poisson = exp_hist - exp_hist * np.log(exp_hist)
-            # print(f"NLL {nll_poisson.sum()}. Systs: {alpha}")
-            # print(f"signal yields: {get_yields(self.template_sig, alpha).sum()}")
-            # print(f'bkg yields: {get_yields(self.template_other_bkg, alpha).sum()}')
 
             nll_gauss = 0.5 * np.sum([( (alpha[syst] - self.alpha_ranges[syst]['mean']) / self.alpha_ranges[syst]['std']) ** 2 for syst in alpha.keys()])
 
-            # print(f"mu: {mu}, tes: {tes}, bkg_scale: {bkg_scale}, jes: {jes}, soft_met: {soft_met}, ttbar_scale: {ttbar_scale}, diboson_scale: {diboson_scale}, NLL: {nll_data.sum()}, NLL_Gaus {nll_gauss}")
 
             return (nll_poisson.sum() + nll_gauss)
 
@@ -278,24 +259,28 @@ class StatisticalAnalysis:
                         soft_met=0.0,
                         ttbar_scale=1.0,
                         diboson_scale=1.0,
-                        # overall_norm_factor=1.0,
                         )
 
         for key, value in self.alpha_ranges.items():
             result.limits[key] = (value['range'][0], value['range'][-1])
+<<<<<<< HEAD
+        result.limits['mu'] = (0, 3)
+
+=======
         result.limits['mu'] = (-10, 20)
         result.limits['mu'] = (0, 10)
 
         # TODO: remove the fixed parameters
         for p in [
-            # 'jes', 
-            # 'soft_met', 
+            'jes', 
+            'soft_met', 
             # 'ttbar_scale', 
             # 'diboson_scale', 
             # 'bkg_scale', 
             # 'tes'
             ]:
             result.fixed[p] = True
+>>>>>>> parent of 9cd1d09... first submission
 
         result.errordef = Minuit.LIKELIHOOD
         result.migrad()
@@ -303,42 +288,21 @@ class StatisticalAnalysis:
         if not result.fmin.is_valid:
             print("Warning: migrad did not converge. Hessian errors might be unreliable.")
 
+        error_bar_scale = 2.5
         mu_hat = result.values['mu']
-        mu_p16 = mu_hat - result.errors['mu']
-        mu_p84 = mu_hat + result.errors['mu']
+        delta_mu_hat = result.errors['mu'] * error_bar_scale
+        mu_p16 = mu_hat - delta_mu_hat
+        mu_p16 = 0 if mu_p16 < 0 else mu_p16 
+        mu_p84 = mu_hat + delta_mu_hat
+        mu_p84 = 3 if mu_p84 > 3 else mu_p84 
 
-        # print(result)
-        # result.draw_profile('mu')
-        # result.draw_mnprofile('mu')
-        # plt.show()
 
-        # plot the fit
-        alpha_test = {syst: result.values[syst] for syst in self.syst_settings.keys()}
-        # TODO: statistic test. Fix this
-        obs_hist = np.zeros(self.bins)
-        for i in range(self.bins):
-            obs_hist[i] = data_templates[i](alpha_test['tes'], alpha_test['jes'])
-        sig_yields = get_yields(self.template_sig, alpha_test)
-        bkg_scale, ttbar_scale, diboson_scale = result.values['bkg_scale'], result.values['ttbar_scale'], result.values['diboson_scale']
-        bkg_yields = bkg_scale * ttbar_scale * get_yields(self.template_ttbar, alpha_test) + \
-                    bkg_scale * diboson_scale * get_yields(self.template_diboson, alpha_test) + \
-                    bkg_scale * get_yields(self.template_other_bkg, alpha_test)
-        # overall_norm_factor = result.values['overall_norm_factor']
-        self.plot_stacked_histogram(
-            self.bin_edges,
-            sig_yields * overall_norm_factor,
-            bkg_yields * overall_norm_factor,
-            mu=mu_hat,
-            N_obs=obs_hist,
-            save_name=f"plots-mystat/fit.png"
-        )
-
-        print(f"mu_hat: {mu_hat:.3f}, delta_mu_hat: {result.errors['mu'] * 2:.3f}, p16: {mu_p16:.3f}, p84: {mu_p84:.3f}")
-        print(f"tes: {result.values['tes']:.3f}, jes: {result.values['jes']:.3f}, soft_met: {result.values['soft_met']:.3f}, ttbar_scale: {result.values['ttbar_scale']:.3f}, diboson_scale: {result.values['diboson_scale']:.3f}, bkg_scale: {result.values['bkg_scale']:.3f}")
+        # print(f"mu_hat: {mu_hat:.3f}, delta_mu_hat: {delta_mu_hat * 2:.3f}, p16: {mu_p16:.3f}, p84: {mu_p84:.3f}")
+        print(f"tes: {result.values['tes']:.3f}, jes: {result.values['jes']:.3f}, soft_met: {result.values['soft_met']:.3f}, ttbar_scale: {result.values['ttbar_scale']:.3f}, diboson_scale: {result.values['diboson_scale']:.3f}, bkg_scale: {result.values['bkg_scale']:.3f}", flush=True)
 
         return {
             "mu_hat": mu_hat,
-            "delta_mu_hat": result.errors['mu'] * 2,
+            "delta_mu_hat": mu_p84 - mu_p16 ,
             "p16": mu_p16,
             "p84": mu_p84,
         }
@@ -391,9 +355,6 @@ class StatisticalAnalysis:
 
         # TODO: In principle, only soft_met need to be considered in the template
         for syst in ['soft_met']:
-        # for syst in self.alpha_ranges.keys():
-        # for syst in ['tes', 'jes', 'soft_met']: # scale factors will be considered in the fit
-        # for syst in self.template_sig.keys():
             if syst == 'nominal': continue
             self.template_sig[syst]['up'], self.template_ttbar[syst]['up'], self.template_diboson[syst]['up'], self.template_other_bkg[syst]['up'] = get_distribution(
                 syst, self.alpha_ranges[syst]['mean'] + self.alpha_ranges[syst]['std']
